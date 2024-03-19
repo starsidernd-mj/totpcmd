@@ -1,7 +1,18 @@
 
 
 class Entry {
+	private:
+	
+	struct EntryInfo {
+		std::string name;
+		std::string token;
+	};
+	
+	EntryInfo entry_d;
+	
 	public:
+	
+	Entry() : entry_d{"", ""} {};
 	
 	std::string addName() {
 		char issuer[100];
@@ -19,9 +30,9 @@ class Entry {
 		}
 		issuer[i] = '\0';
 		
-		std::string name;
-		name.assign(issuer);
-		return name;
+		entry_d.name.assign(issuer);
+		
+		return entry_d.name;
 	}
 	
 	std::string addToken() {
@@ -50,8 +61,8 @@ class Entry {
 		}
 		password[i] = '\0'; // Null-terminate the password string
 		// Now you have the password in the 'password' variable
-		//secretKey.assign(password);
-		std::string result(password);
-		return result;
+
+		entry_d.token.assign(password);
+		return entry_d.token;
 	}
 };

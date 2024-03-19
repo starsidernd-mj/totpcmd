@@ -77,22 +77,37 @@ int main() {
                     Entry* en = new Entry();
                     add_menu_running = true;
                     
+                    //disable no delay
                     nodelay(stdscr, false);
                     
                     while(add_menu_running) {
                         drawAddMenu();
                         loopAddMenu(en, &add_menu_running);
                     }
-                    // Handle entering password
-                    //mvprintw(12, 1, "Enter Password: ");
-                    //refresh();
-                    
-                    //en->addToken();
+
+                    //re-enable no delay for menus
                     nodelay(stdscr, true);
                     
                     delete en;
                     break;
                 }
+                /*case '2': {
+                    // Add your functionality for option 2 here
+                    //replace time step
+                    uint64_t timeStep = 30;
+
+                    //get current time in seconds
+                    uint64_t currentTime = std::time(nullptr);
+
+                    //calculate counter based on current time and time step
+                    uint64_t counter = currentTime / timeStep;
+                    
+                    TOTP totpGen;
+                    totp = totpGen.generateTOTP(secretKey, counter);
+                    mvprintw(7, 1, "TOTP: %s", totp.c_str());
+                    refresh(); 
+                    break;
+                }*/
                 case '2': {
                     // Add your functionality for option 2 here
                     //replace time step
@@ -147,6 +162,7 @@ void restoreBlockingInput() {
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 }
 
+// init ncurses
 void initialize() {
     initscr(); // Initialize ncurses
     cbreak(); // Disable line buffering
@@ -154,6 +170,7 @@ void initialize() {
     keypad(stdscr, true); // Enable keypad for arrow keys, etc.
 }
 
+// draw the main menu
 void drawMainMenu() {
     clear(); // Clear the screen
 
@@ -179,8 +196,9 @@ void drawMainMenu() {
 // entry items
 std::string entry_name = "";
 std::string entry_token = "";
-char entry_token_hidden[20];
+std::string entry_token_hidden = "";
 
+// draw the meny for adding entries
 void drawAddMenu() {
     clear();
     
@@ -193,11 +211,12 @@ void drawAddMenu() {
     mvprintw(7, 1, "Q. Cancel");
     
     mvprintw(3, 16, entry_name.c_str());
-    mvprintw(5, 16, entry_token_hidden);
+    mvprintw(5, 16, entry_token_hidden.c_str());
     
     refresh();
 }
 
+// loop through the options of the entry add menu
 void loopAddMenu(Entry *entry, bool *running) {
     // Get user input
     int choice = getch();
@@ -215,9 +234,8 @@ void loopAddMenu(Entry *entry, bool *running) {
             }
             case '3': {
                 entry_token = entry->addToken();
-                for(int i = 0; i < entry_token.length(); i++) {
-                    entry_token_hidden[i] = '*';
-                }
+                entry_token_hidden = entry_token;
+                std::fill(entry_token_hidden.begin(), entry_token_hidden.end(), '*');
                 break;
             }
             case '4': {
@@ -225,7 +243,11 @@ void loopAddMenu(Entry *entry, bool *running) {
             }
             case 'q':
             case 'Q':
-                *running = false; 
+                *running = false;
+                entry_name = "";
+                entry_token_hidden = "";
+                entry_token = "";
+                
                 break;
             default: break;
         }
