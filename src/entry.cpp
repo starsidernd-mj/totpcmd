@@ -65,4 +65,8 @@ class Entry {
 		entry_d.token.assign(password);
 		return entry_d.token;
 	}
+	
+	EntryInfo getEntry() {
+		return entry_d;
+	}
 };

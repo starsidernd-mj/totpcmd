@@ -12,6 +12,7 @@
 #include "totp.cpp"
 #include "screenconfig.cpp"
 #include "entry.cpp"
+#include "viewer.cpp"
 
 // Function declarations
 void initialize();
@@ -21,6 +22,7 @@ void enableNonBlockingInput();
 void restoreBlockingInput();
 void drawAddMenu();
 int loopAddMenu(Entry *entry, bool *running);
+void drawClock(int position);
 
 std::string secretKey = "";
 std::string totp = "";
@@ -67,6 +69,8 @@ int main() {
     bool running = true;
     // bool to keep menu open
     bool add_menu_running = true;
+    // bool to keep viewer open
+    bool viewer_menu_running = true;
     
     
     while (running) {
@@ -91,6 +95,7 @@ int main() {
                         drawAddMenu();
                         success = loopAddMenu(en, &add_menu_running);
                         
+                        //check if entry was added, if so add to list, else delete memory
                         pos+=4;
                         switch(success) {
                             case 0: {
@@ -121,16 +126,6 @@ int main() {
                     //re-enable no delay for menus
                     nodelay(stdscr, true);
                     
-                    //check if entry was added, if so add to list, else delete memory
-                    /*if(success) {
-                        keys.push_back(en);
-                        pos+=4;
-                        mvprintw(pos, 1, "Entry added");
-                    } else {
-                        delete en;
-                        pos+=4;
-                        mvprintw(pos, 1, "Entry canceled");
-                    }*/
                     break;
                 }
                 /*case '2': {
@@ -151,6 +146,32 @@ int main() {
                     break;
                 }*/
                 case '3': {
+                    viewer_menu_running = true;
+                    
+                    Viewer* vw = new Viewer();
+                    
+                    //disable no delay for menus
+                    //nodelay(stdscr, false);
+                    
+                    while(viewer_menu_running) {
+                        vw->drawViewer();
+                        vw->drawEntries(keys);
+                        
+                        int clockPos = vw->getPos()+4;
+                        drawClock(clockPos);
+                        
+                        vw->subMenu(&viewer_menu_running);
+                        
+                        refresh();
+                        
+                        // Wait for 1 second
+                        //std::this_thread::sleep_for(std::chrono::seconds(1));
+                    }
+                    
+                    //re-enable no delay for menus
+                    //nodelay(stdscr, true);
+                    
+                    /*
                     // Add your functionality for option 2 here
                     //replace time step
                     uint64_t timeStep = 30;
@@ -164,7 +185,7 @@ int main() {
                     TOTP totpGen;
                     totp = totpGen.generateTOTP(secretKey, counter);
                     //mvprintw(7, 1, "TOTP: %s", totp.c_str());
-                    refresh(); 
+                    refresh(); */
                     break;
                 }
                 case 'q':
@@ -177,7 +198,7 @@ int main() {
         refresh(); // Refresh the screen
             
         // Wait for 1 second
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        //std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     
     // Restore blocking input before exiting
@@ -225,19 +246,42 @@ void drawMainMenu() {
     mvprintw(pos++, 1, "3. View entries"); 
     mvprintw(pos++, 1, "Q. Quit");
     pos++;
-    mvprintw(pos++, 1, "TOTP: %s", totp.c_str());
+    //mvprintw(pos++, 1, "TOTP: %s", totp.c_str());
     
-    // Get current time
-    time_t now = time(0);
-    tm *ltm = localtime(&now);
-
     // Print current time
-    pos++;
-    mvprintw(pos++, 1, "Current Time: %02d:%02d:%02d", ltm->tm_hour, ltm->tm_min, ltm->tm_sec);
+    drawClock(++pos);
 
     refresh(); // Refresh the screen
     
     //usleep(100000);
+}
+
+void drawClock(int position) {
+    // Get current time
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
+    
+    auto nowt = std::chrono::system_clock::now();
+    std::time_t current_time = std::chrono::system_clock::to_time_t(nowt);
+
+    std::stringstream ss;
+    ss << current_time;
+    std::string time_str = ss.str();
+    
+    // Print current time
+    //mvprintw(position++, 1, "Current UTC Time: %02d:%02d:%02d", ltm->tm_hour, ltm->tm_min, ltm->tm_sec);
+    mvprintw(position++, 1, time_str.c_str());
+    
+    // Draw blocks based on 30 timer
+    int bar_cntr;
+    bar_cntr = 30 - (ltm->tm_sec % 30);
+
+    for(int i = 1; i <= bar_cntr; i++) {
+        mvprintw(position, i, "=");
+    }
+    
+    // Wait for 1 second
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 // entry items
