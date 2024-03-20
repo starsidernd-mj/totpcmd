@@ -10,7 +10,7 @@ class TOTP {
 	public:
 
 	std::string generateTOTP(const std::string& key, uint64_t counter, size_t digits = 6) {
-		std::cout << "Generating TOTP" << std::endl;
+		//std::cout << "Generating TOTP" << std::endl;
 		// Replace 'your_time_step' with the time step (usually 30 seconds)
 		uint64_t timeStep = 30;
 

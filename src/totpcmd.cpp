@@ -7,6 +7,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <iostream>
+#include <vector>
 
 #include "totp.cpp"
 #include "screenconfig.cpp"
@@ -19,10 +20,14 @@ void cleanup();
 void enableNonBlockingInput();
 void restoreBlockingInput();
 void drawAddMenu();
-void loopAddMenu(Entry *entry, bool *running);
+int loopAddMenu(Entry *entry, bool *running);
 
 std::string secretKey = "";
 std::string totp = "";
+
+std::vector<Entry*> keys;
+
+int pos = 1;
 
 int main() {
     // System-specific commands to set terminal size and position
@@ -76,19 +81,56 @@ int main() {
                 case '1': {
                     Entry* en = new Entry();
                     add_menu_running = true;
+                    int success = 0;
                     
                     //disable no delay
                     nodelay(stdscr, false);
                     
+                    
                     while(add_menu_running) {
                         drawAddMenu();
-                        loopAddMenu(en, &add_menu_running);
+                        success = loopAddMenu(en, &add_menu_running);
+                        
+                        pos+=4;
+                        switch(success) {
+                            case 0: {
+                                delete en;
+                                mvprintw(pos, 1, "Entry canceled");
+                                refresh();
+                                break;
+                            }
+                            case 1: {
+                                keys.push_back(en);
+                                mvprintw(pos, 1, "Entry added");
+                                refresh();
+                                break;
+                            }
+                            case 2: {
+                                mvprintw(pos, 1, "Please enter name and token");
+                                refresh();
+                                // Wait for 1 second
+                                std::this_thread::sleep_for(std::chrono::seconds(1));
+                                break;
+                            }
+                            default: {
+                                break;
+                            }
+                        }
                     }
 
                     //re-enable no delay for menus
                     nodelay(stdscr, true);
                     
-                    delete en;
+                    //check if entry was added, if so add to list, else delete memory
+                    /*if(success) {
+                        keys.push_back(en);
+                        pos+=4;
+                        mvprintw(pos, 1, "Entry added");
+                    } else {
+                        delete en;
+                        pos+=4;
+                        mvprintw(pos, 1, "Entry canceled");
+                    }*/
                     break;
                 }
                 /*case '2': {
@@ -108,7 +150,7 @@ int main() {
                     refresh(); 
                     break;
                 }*/
-                case '2': {
+                case '3': {
                     // Add your functionality for option 2 here
                     //replace time step
                     uint64_t timeStep = 30;
@@ -121,7 +163,7 @@ int main() {
                     
                     TOTP totpGen;
                     totp = totpGen.generateTOTP(secretKey, counter);
-                    mvprintw(7, 1, "TOTP: %s", totp.c_str());
+                    //mvprintw(7, 1, "TOTP: %s", totp.c_str());
                     refresh(); 
                     break;
                 }
@@ -173,20 +215,25 @@ void initialize() {
 // draw the main menu
 void drawMainMenu() {
     clear(); // Clear the screen
+    
+    pos = 1;
 
     // Print the menu options
-    mvprintw(1, 1, "Main Menu");
-    mvprintw(3, 1, "1. Enter secret key");
-    mvprintw(4, 1, "2. Generate TOTP");
-    mvprintw(5, 1, "Q. Quit");
-    mvprintw(7, 1, "TOTP: %s", totp.c_str());
+    mvprintw(pos++, 1, "Main Menu");
+    mvprintw(pos++, 1, "1. Add entry");
+    mvprintw(pos++, 1, "2. Remove entry");
+    mvprintw(pos++, 1, "3. View entries"); 
+    mvprintw(pos++, 1, "Q. Quit");
+    pos++;
+    mvprintw(pos++, 1, "TOTP: %s", totp.c_str());
     
     // Get current time
     time_t now = time(0);
     tm *ltm = localtime(&now);
 
     // Print current time
-    mvprintw(9, 1, "Current Time: %02d:%02d:%02d", ltm->tm_hour, ltm->tm_min, ltm->tm_sec);
+    pos++;
+    mvprintw(pos++, 1, "Current Time: %02d:%02d:%02d", ltm->tm_hour, ltm->tm_min, ltm->tm_sec);
 
     refresh(); // Refresh the screen
     
@@ -194,30 +241,38 @@ void drawMainMenu() {
 }
 
 // entry items
-std::string entry_name = "";
-std::string entry_token = "";
-std::string entry_token_hidden = "";
+std::string entry_name;
+std::string entry_token;
+std::string entry_token_hidden;
+
+int namepos = 0;
+int tokenpos = 0;
 
 // draw the meny for adding entries
 void drawAddMenu() {
     clear();
     
-    // Print header
-    mvprintw(1, 1, "Add item");
-    mvprintw(3, 1, "1. Name: ");
-    mvprintw(4, 1, "2. Issuer: ");
-    mvprintw(5, 1, "3. Token: ");
-    mvprintw(6, 1, "4. Create");
-    mvprintw(7, 1, "Q. Cancel");
+    pos = 1;
     
-    mvprintw(3, 16, entry_name.c_str());
-    mvprintw(5, 16, entry_token_hidden.c_str());
+    // Print header
+    mvprintw(pos++, 1, "Add item");
+    pos++;
+    namepos = pos;
+    mvprintw(pos++, 1, "1. Name: ");
+    mvprintw(pos++, 1, "2. Issuer: ");
+    tokenpos = pos;
+    mvprintw(pos++, 1, "3. Token: ");
+    mvprintw(pos++, 1, "4. Create");
+    mvprintw(pos++, 1, "Q. Cancel");
+    
+    mvprintw(namepos, 16, entry_name.c_str());
+    mvprintw(tokenpos, 16, entry_token_hidden.c_str());
     
     refresh();
 }
 
 // loop through the options of the entry add menu
-void loopAddMenu(Entry *entry, bool *running) {
+int loopAddMenu(Entry *entry, bool *running) {
     // Get user input
     int choice = getch();
 
@@ -225,33 +280,45 @@ void loopAddMenu(Entry *entry, bool *running) {
     if(choice != ERR) {
         switch (choice) {
             case '1': {
-                entry_name = entry->addName();
+                entry_name = entry->addName(namepos);
                 break;
             }
             case '2': {
-                
+
                 break;
             }
             case '3': {
-                entry_token = entry->addToken();
+                entry_token = entry->addToken(tokenpos);
                 entry_token_hidden = entry_token;
                 std::fill(entry_token_hidden.begin(), entry_token_hidden.end(), '*');
                 break;
             }
             case '4': {
-                break;
+                if(!(entry_name.empty()) && !(entry_token.empty())) {
+                    *running = false;
+                    entry_name.clear();
+                    entry_token_hidden.clear();
+                    entry_token.clear();
+                    return 1;
+                } else {
+                    //pos+=4;
+                    //mvprintw(pos, 1, "Please enter a name and token");
+                    return 2;
+                }
             }
             case 'q':
-            case 'Q':
+            case 'Q': {
                 *running = false;
-                entry_name = "";
-                entry_token_hidden = "";
-                entry_token = "";
-                
-                break;
-            default: break;
+                entry_name.clear();
+                entry_token_hidden.clear();
+                entry_token.clear();
+
+                //break;
+                return 0;
+            }
         }
     }
+    return -1;
 }
 
 void cleanup() {

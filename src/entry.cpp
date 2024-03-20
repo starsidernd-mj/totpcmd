@@ -14,7 +14,7 @@ class Entry {
 	
 	Entry() : entry_d{"", ""} {};
 	
-	std::string addName() {
+	std::string addName(int pos) {
 		char issuer[100];
 		int i = 0;
 		
@@ -24,7 +24,7 @@ class Entry {
 				break; // End of input
 			} else {
 				issuer[i++] = ch;
-				mvprintw(3, 16, issuer);
+				mvprintw(pos, 16, issuer);
 				refresh();
 			}
 		}
@@ -35,7 +35,7 @@ class Entry {
 		return entry_d.name;
 	}
 	
-	std::string addToken() {
+	std::string addToken(int pos) {
 		char password[100];
 		int i = 0;
 		
@@ -47,14 +47,14 @@ class Entry {
 				// Handle backspace
 				if (i > 0) {
 					--i;
-					mvprintw(5, 16 + i, " "); // Clear the character
+					mvprintw(pos, 16 + i, " "); // Clear the character
 					refresh();
 				}
 			} else {
 				// Handle normal character input
 				if (i < sizeof(password) - 1) {
 					password[i++] = ch;
-					mvprintw(5, 16 + i - 1, "*"); // Display asterisk
+					mvprintw(pos, 16 + i - 1, "*"); // Display asterisk
 					refresh();
 				}
 			}
