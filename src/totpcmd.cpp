@@ -8,11 +8,14 @@
 #include <unistd.h>
 #include <iostream>
 #include <vector>
+#include <fstream>
+#include <sstream>
 
 #include "totp.cpp"
 #include "screenconfig.cpp"
 #include "entry.cpp"
 #include "viewer.cpp"
+#include "savesystem.cpp"
 
 // Function declarations
 void initialize();
@@ -32,6 +35,12 @@ std::vector<Entry*> keys;
 int pos = 1;
 
 int main() {
+    // Check user permissions
+    if(geteuid() != 0) {
+        std::cerr << "This program must be run with root permissions." << std::endl;
+        return 1;
+    }
+    
     // System-specific commands to set terminal size and position
     ScreenConfig* sc = new ScreenConfig();
     
@@ -55,6 +64,29 @@ int main() {
     
     // Destory ScreenConfig object
     delete sc;
+    
+    // Access save system
+    SaveSystem* ss = new SaveSystem();
+    ss->openFile();
+    
+    // Add entries to keys from file
+    std::vector<std::string> redEntries;
+    redEntries = ss->readEntry();
+    
+    for(std::string st : redEntries) {
+        //create a new entry
+        Entry* ent = new Entry();
+        //split the string
+        char delimiter = ',';
+        std::vector<std::string> st_key_token = ss->splitString(st, delimiter);
+        
+        //populate entry and add to keys
+        if(!st_key_token.empty()) {
+            ent->setName(st_key_token.at(0));
+            ent->setToken(st_key_token.at(1));
+            keys.push_back(ent);
+        }
+    }
     
     initialize(); // Initialize ncurses
     
@@ -203,6 +235,9 @@ int main() {
     
     // Restore blocking input before exiting
     restoreBlockingInput();
+    
+    // Close savefile
+    ss->closeFile();
 
     cleanup(); // Cleanup ncurses
     return 0;

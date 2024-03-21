@@ -69,4 +69,12 @@ class Entry {
 	EntryInfo getEntry() {
 		return entry_d;
 	}
+	
+	void setName(std::string key) {
+		entry_d.name.assign(key);
+	}
+	
+	void setToken(std::string key) {
+		entry_d.token.assign(key);
+	}
 };
