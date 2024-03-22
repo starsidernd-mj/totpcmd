@@ -68,6 +68,8 @@ int main() {
     // Access save system
     SaveSystem* ss = new SaveSystem();
     ss->openFile();
+    //ss->testWrite("");
+    //ss->testWrite("step,1");
     
     // Add entries to keys from file
     std::vector<std::string> redEntries;
@@ -87,6 +89,8 @@ int main() {
             keys.push_back(ent);
         }
     }
+    
+    //ss->testWrite("step 2");
     
     initialize(); // Initialize ncurses
     
@@ -137,7 +141,13 @@ int main() {
                                 break;
                             }
                             case 1: {
+                                //printw("Trying to write to file here\n");
+                                //ss->testWrite("step 3");
+                                //write to file
+                                ss->addEntry(en);
+                                //add to viewer
                                 keys.push_back(en);
+                                
                                 mvprintw(pos, 1, "Entry added");
                                 refresh();
                                 break;
@@ -238,6 +248,7 @@ int main() {
     
     // Close savefile
     ss->closeFile();
+    delete ss;
 
     cleanup(); // Cleanup ncurses
     return 0;
